@@ -10,6 +10,7 @@ import {
   Legend,
 } from "chart.js";
 import { Line } from "react-chartjs-2";
+import Gauge from "../components/Gauge";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -19,8 +20,9 @@ export default function Dashboard() {
     temperature: "--",
     humidity: "--",
   });
+
   const [allData, setAllData] = useState({ timestamps: [], temps: [], hums: [] });
-  const [filter, setFilter] = useState("monthly"); // daily, monthly, yearly
+  const [filter, setFilter] = useState("monthly");
   const [currentDate, setCurrentDate] = useState(new Date());
 
   const sheetId = import.meta.env.VITE_GOOGLE_SHEET_ID;
@@ -37,14 +39,11 @@ export default function Dashboard() {
 
       const rows = data.values.slice(1);
 
-      // Parse timestamp and filter
       const filteredRows = rows.filter((row) => {
         if (!row[0]) return false;
-
         const [datePart, timePart] = row[0].split(" ");
         const [day, month, year] = datePart.split("/").map(Number);
         const [hours, minutes, seconds] = timePart.split(":").map(Number);
-
         const timestamp = new Date(year, month - 1, day, hours, minutes, seconds);
 
         if (filter === "daily") {
@@ -53,12 +52,14 @@ export default function Dashboard() {
             timestamp.getMonth() === currentDate.getMonth() &&
             timestamp.getDate() === currentDate.getDate()
           );
-        } else if (filter === "monthly") {
+        }
+        if (filter === "monthly") {
           return (
             timestamp.getFullYear() === currentDate.getFullYear() &&
             timestamp.getMonth() === currentDate.getMonth()
           );
-        } else if (filter === "yearly") {
+        }
+        if (filter === "yearly") {
           return timestamp.getFullYear() === currentDate.getFullYear();
         }
         return true;
@@ -72,10 +73,11 @@ export default function Dashboard() {
         humidity: lastRow[2] + "%",
       });
 
-      const timestamps = filteredRows.map((r) => r[0]);
-      const temps = filteredRows.map((r) => Number(r[1]));
-      const hums = filteredRows.map((r) => Number(r[2]));
-      setAllData({ timestamps, temps, hums });
+      setAllData({
+        timestamps: filteredRows.map((r) => r[0]),
+        temps: filteredRows.map((r) => Number(r[1])),
+        hums: filteredRows.map((r) => Number(r[2])),
+      });
     } catch (err) {
       console.error("Error fetching Google Sheet:", err);
     }
@@ -83,7 +85,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 30000); // refresh every 30 seconds
+    const interval = setInterval(fetchData, 30000);
     return () => clearInterval(interval);
   }, [filter, currentDate]);
 
@@ -142,10 +144,16 @@ export default function Dashboard() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Temperature Card */}
-        <div className="p-6 bg-white shadow rounded-lg flex flex-col">
-          <h3 className="text-xl font-semibold">Temperature</h3>
-          <p className="text-4xl font-bold mt-2">{sensorData.temperature}</p>
+        <div className="p-6 bg-white shadow rounded-lg flex flex-col items-center">
+          <h3 className="text-xl font-semibold mb-2">Temperature (°C)</h3>
 
+          <Gauge
+            value={parseFloat(sensorData.temperature)}
+            label="Temp"
+            color="rgba(255,99,132,1)"
+          />
+
+          {/* Filter Controls */}
           <div className="flex items-center justify-center mt-4 border-t pt-2 mb-2 gap-4 text-gray-600">
             <button onClick={() => changePeriod(-1)}>&lt;</button>
             <select
@@ -165,10 +173,16 @@ export default function Dashboard() {
         </div>
 
         {/* Humidity Card */}
-        <div className="p-6 bg-white shadow rounded-lg flex flex-col">
-          <h3 className="text-xl font-semibold">Humidity</h3>
-          <p className="text-4xl font-bold mt-2">{sensorData.humidity}</p>
+        <div className="p-6 bg-white shadow rounded-lg flex flex-col items-center">
+          <h3 className="text-xl font-semibold mb-2">Humidity (%)</h3>
 
+          <Gauge
+            value={parseFloat(sensorData.humidity)}
+            label="Humidity"
+            color="rgba(54,162,235,1)"
+          />
+
+          {/* Filter Controls */}
           <div className="flex items-center justify-center mt-4 border-t pt-2 mb-2 gap-4 text-gray-600">
             <button onClick={() => changePeriod(-1)}>&lt;</button>
             <select
